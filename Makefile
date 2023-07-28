@@ -1,8 +1,8 @@
-POETRY ?= $(HOME)/.poetry/bin/poetry
+POETRY ?= $(HOME)/.local/bin/poetry
 
 .PHONY: install-poetry
 install-poetry:
-	@curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
+	@curl -sSL https://install.python-poetry.org | python3 -
 
 .PHONY: install-deps
 install-deps:
