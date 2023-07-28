@@ -13,3 +13,12 @@ services:
       - ./docker-tls-entrypoint.sh:/usr/local/bin/docker-tls-entrypoint.sh:ro
     entrypoint:
       - /usr/local/bin/docker-tls-entrypoint.sh
+  nats-jwt:
+    image: nats:2-alpine
+    ports:
+      - 4226:4222
+    volumes:
+      - ./docker-jwt-entrypoint.sh:/usr/local/bin/docker-jwt-entrypoint.sh:ro
+      - ./nats-jwt.conf:/etc/nats-server.conf:ro
+    entrypoint:
+      - /usr/local/bin/docker-jwt-entrypoint.sh

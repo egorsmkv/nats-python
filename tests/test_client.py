@@ -20,6 +20,28 @@ def nats_tls_url():
     return os.environ.get("NATS_TLS_URL", "tls://127.0.0.1:4224")
 
 
+@pytest.fixture
+def nats_jwt_url():
+    return os.environ.get("NATS_JWT_URL", "nats://127.0.0.1:4226")
+
+
+@pytest.fixture
+def user_nkey_seed():
+    return b"SUAHX5NQQPKNEFV67AJKB5K5LR52GVXCWQITKBHK6HZV2EOBJLDRW7ZXTQ"
+
+
+@pytest.fixture
+def user_jwt():
+    return (
+        b"eyJ0eXAiOiJKV1QiLCJhbGciOiJlZDI1NTE5LW5rZXkifQ.eyJqdGkiOiIyNUFMWlhFTUZLN01QT0UyVzJURTRUUkdUR0tRTlFHQT"
+        b"VPUVIzNkJPRElBM0dWTEtRSTJRIiwiaWF0IjoxNjkwNTQ4ODkyLCJpc3MiOiJBRFRUVllaM0VRRjRRVUNYMkFVRUczUFVFQ0E0Q0V"
+        b"ISFFYUENRT0Q0TTdVSFdNRjZIWUJZTEVQQSIsIm5hbWUiOiJUZXN0VXNlciIsInN1YiI6IlVEQVVUTjZFS0RQTktHQkJYSExIREg2"
+        b"SFFJUUNFR1BMQllUUVo2U1NWTzM0WUxFRUVZQjQ1NUxUIiwibmF0cyI6eyJwdWIiOnt9LCJzdWIiOnt9LCJzdWJzIjotMSwiZGF0Y"
+        b"SI6LTEsInBheWxvYWQiOi0xLCJ0eXBlIjoidXNlciIsInZlcnNpb24iOjJ9fQ.W0smQgCuOZg0WmG_jW7LWzwadSKSUH0GKnrxfgA"
+        b"bH80oKRBIfxji9W5vNDi0FeAAdsDjKK81O4h7ij6TKIFHCQ"
+    )
+
+
 def test_connect_and_close(nats_plain_url):
     client = NATSClient(nats_plain_url, socket_timeout=2)
 
@@ -221,3 +243,12 @@ def test_graceful_shutdown(nats_plain_url):
     client.close()
     thread.join(5)
     assert not thread.is_alive(), "thread did not finish"
+
+
+def test_jwt_connect(nats_jwt_url, user_nkey_seed, user_jwt):
+    client = NATSClient(
+        nats_jwt_url, socket_timeout=2, nkey_seed=user_nkey_seed, user_jwt=user_jwt
+    )
+    client.connect()
+    client.ping()
+    client.close()

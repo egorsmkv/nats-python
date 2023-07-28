@@ -1,3 +1,4 @@
+import base64
 import io
 import json
 import re
@@ -99,6 +100,8 @@ class NATSConnOptions:
     version: str = pkg_resources.get_distribution("nats-python").version
     verbose: bool = False
     pedantic: bool = False
+    nkey_seed: Optional[bytes] = None
+    user_jwt: Optional[bytes] = None
 
 
 class NATSClient:
@@ -110,6 +113,7 @@ class NATSClient:
         "_ssid",
         "_subs",
         "_nuid",
+        "_server_info",
     )
 
     def __init__(
@@ -126,6 +130,8 @@ class NATSClient:
         tls_verify: bool = False,
         socket_timeout: float = None,
         socket_keepalive: bool = False,
+        nkey_seed: Optional[bytes] = None,
+        user_jwt: Optional[bytes] = None,
     ) -> None:
         parsed = urlparse(url)
         self._conn_options = NATSConnOptions(
@@ -142,6 +148,8 @@ class NATSClient:
             tls_verify=tls_verify,
             verbose=verbose,
             pedantic=pedantic,
+            nkey_seed=nkey_seed,
+            user_jwt=user_jwt,
         )
 
         self._socket: socket.socket
@@ -191,8 +199,8 @@ class NATSClient:
 
     def _try_connection(self, *, tls_required: bool) -> None:
         _, result = self._recv(INFO_RE)
-        server_info = json.loads(result.group(1))
-        server_tls_required = server_info.get("tls_required", False)
+        self._server_info = json.loads(result.group(1))
+        server_tls_required = self._server_info.get("tls_required", False)
 
         if not tls_required and server_tls_required:
             raise NATSTLSConnectionRequiredError()
@@ -318,6 +326,12 @@ class NATSClient:
             options["pass"] = self._conn_options.password
         elif self._conn_options.username:
             options["auth_token"] = self._conn_options.username
+        elif self._conn_options.nkey_seed and "nonce" in self._server_info:
+            sig = self._sign_nonce(self._server_info["nonce"])
+            options["sig"] = sig
+
+            if self._conn_options.user_jwt is not None:
+                options["jwt"] = self._conn_options.user_jwt.decode()
 
         self._send(CONNECT_OP, json.dumps(options))
 
@@ -394,3 +408,13 @@ class NATSClient:
             self._subs.pop(sub.sid)
 
         sub.callback(message)
+
+    def _sign_nonce(self, nonce: str):
+        import nkeys
+
+        kp = nkeys.from_seed(self._conn_options.nkey_seed)
+        raw_signed = kp.sign(nonce.encode())
+        sig = base64.b64encode(raw_signed)
+        kp.wipe()
+        del kp
+        return sig.decode()
