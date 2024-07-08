@@ -8,8 +8,6 @@ from dataclasses import dataclass
 from typing import BinaryIO, Callable, Dict, Match, Optional, Pattern, Tuple, Union
 from urllib.parse import urlparse
 
-import pkg_resources
-
 from pynats.exceptions import (
     NATSInvalidResponse,
     NATSInvalidSchemeError,
@@ -97,7 +95,7 @@ class NATSConnOptions:
     tls_client_key: Optional[str] = None
     tls_hostname: Optional[str] = None
     tls_verify: bool = False
-    version: str = pkg_resources.get_distribution("nats-python").version
+    version: str = "0.9.0-alpha.0"
     verbose: bool = False
     pedantic: bool = False
     nkey_seed: Optional[bytes] = None
